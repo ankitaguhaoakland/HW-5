@@ -39,6 +39,11 @@ library(useful)
 library(coefplot)
 library(caret)
 library(lattice)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(class)
+library(randomForest)
 ```
 
 Clean up the storeid related fields. Drop Store7 field.
@@ -144,15 +149,41 @@ cm_LogM1 <- confusionMatrix(MM_fit_predictions$yhat_LogM1, MM_fit_predictions$ya
 cm_LogM1
 ```
 
-Visualizing the rate of purchase of MM vs CH. We got an almost ideal distribution scores with the scores of negative instances (0) to the left represented by the Orange Lines. This Orange solid line represents the distribution of the score for the items known not to be buying CH and not MM. While the dotted green line represents the distribution of the popularity of MM. 
+Visualizing the rate of purchase of MM vs CH. We got an almost ideal distribution scores with the scores of negative instances (0) to the left represented by the Orange Line and the distribution of positive instances (1) to the right represented by the dotted Green Line. This Orange solid line represents the distribution of the customer not buying MM or in other words the distribution of the customer buying CH and the dotted Green line represents the distributin of the customer buying MM or in other words the distribution of the customers not buying CH. 
 
+And this distribution is actually correct as we can see from the Confusion Matrix as well.
 ```{r}
 ggplot(MM_fit_predictions, aes(x=yhat_LogM1, y=yact)) + geom_point() + 
 stat_smooth(method="glm", family="binomial", se=FALSE)
 
+# Double Density Plot
 ggplot(ojsalesdf_train, aes(x=yhat_LogM1, color=MM, linetype=MM)) + geom_density()
 ```
 
+# Model 2: Simple Decision Tree
+```{r}
+MM_tree <- rpart(MM ~ ., data=ojsalesdf_train, method="class")
+
+# Visualize the tree with rpart.plot
+rpart.plot(MM_tree)
+```
+
+## Creating Confusion Matrix
+```{r}
+MM_fit_predictions$yhat_tree <- predict(MM_tree, type = "class")
+
+# Confusion Matrix
+table(MM_fit_predictions$yact, MM_fit_predictions$yhat_tree)
+
+# Percentage of Precision and Recall 
+prop.table(table(MM_fit_predictions$yact, MM_fit_predictions$yhat_tree))
+```
+
+```{r}
+cm_tree <- confusionMatrix(MM_fit_predictions$yhat_tree, MM_fit_predictions$yact, 
+                            positive = "1")
+cm_tree
+```
 
 You should build at least two classification models to try to predict MM.
 Our error metric will be overall accuracy.
@@ -167,6 +198,33 @@ You should at least try the following two techniques:
 
 **HACKER EXTRA:** Try additional techniques such as random forest, k-nearest 
 neighbor or others.
+
+# Model 3: Random Forest
+```{r}
+rand_forest <- randomForest(MM ~ ., data=ojsalesdf_train, method = "class")
+```
+
+## Creating Confusion Matrix
+```{r}
+#MM_fit_predictions$yhat_rf <- predict(rand_forest, type = "class")
+# Confusion matrix
+table(MM_fit_predictions$yact, MM_fit_predictions$yhat_rf)
+
+# Percentage of Precision and Recall 
+prop.table(table(MM_fit_predictions$yact, MM_fit_predictions$yhat_rf))
+```
+
+```{r}
+cm_rf <- confusionMatrix(MM_fit_predictions$yhat_rf, MM_fit_predictions$yact, 
+                            positive = "1")
+cm_rf
+```
+
+
+
+
+
+
 
 Then use the `predict()` function to make classification predictions on the
 test dataset and use `caret::confusionMatrix` to create a confusion matrix
