@@ -44,6 +44,7 @@ library(rpart.plot)
 library(RColorBrewer)
 library(class)
 library(randomForest)
+library(reshape2)
 ```
 
 Clean up the storeid related fields. Drop Store7 field.
@@ -202,11 +203,12 @@ neighbor or others.
 # Model 3: Random Forest
 ```{r}
 rand_forest <- randomForest(MM ~ ., data=ojsalesdf_train, method = "class")
+rand_forest
 ```
 
 ## Creating Confusion Matrix
 ```{r}
-#MM_fit_predictions$yhat_rf <- predict(rand_forest, type = "class")
+MM_fit_predictions$yhat_rf <- predict(rand_forest, type = "class")
 # Confusion matrix
 table(MM_fit_predictions$yact, MM_fit_predictions$yhat_rf)
 
@@ -220,8 +222,34 @@ cm_rf <- confusionMatrix(MM_fit_predictions$yhat_rf, MM_fit_predictions$yact,
 cm_rf
 ```
 
+# Model 4: k-nearest Neighbor
+```{r}
+# function to normalize data
+normalize <- function(x) {
+num <- x - min(x)
+denom <- max(x) - min(x)
+return (num/denom)
+}
+```
+
+```{r}
+
+# create and normalize a new data frame for knn analysis
+acs_numericals <- data.frame(acs$NumBedrooms, acs$NumChildren, acs$NumPeople, acs$NumRooms, acs$NumVehicles, acs$NumWorkers, acs$HouseCosts, acs$ElectricBill, acs$Insurance)
+acs_norm <- as.data.frame(lapply(acs_numericals[1:8], normalize))
+acs_norm$HighIncome1 <- c(acs$HighIncome)
+
+#HR_fit_01 <- mutate_each_(HR_fit[,1:5],funs(rescale01),vars=colnames(HR_fit)[1:5])
+
+lapply(ojsalesdf_train, normalize)
+ojsalesdf_train01 <- mutate_all(ojsalesdf_train,funs(rescale01))
 
 
+#ojsalesdf_train_01 <- mutate_each_(ojsalesdf_train[,1:5],funs(rescale01),vars=colnames(ojsalesdf_train)[1:5])
+
+# pred_knn25 <- knn(HR_fit_01, HR_test_01, HR_fit$left, k=25, prob = TRUE)
+# head(pred_knn25)
+```
 
 
 
