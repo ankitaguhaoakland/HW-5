@@ -114,7 +114,7 @@ MM_LogM1 <- glm(MM ~  .,
 summary(MM_LogM1)
 ```
 
-Since some of our co-efficients in the Model has NA values and for obvious reasons they does not look like to be  contributing for our Model significance, let's remove them from our Model and fit our Model.
+Looks like our Model has fitted well, since the Residual deviance value is less than the value of Null deviance. But there are some of our co-efficients in the Model with NA values and for obvious reasons they does not look like to be contributing for our Model significance, let's remove them from our Model and fit our Model and check if the Residual deviance and the Null deviance makes any difference.
 
 ```{r}
 MM_LogM1 <- glm(MM ~  . - SalePriceMM - ListPriceDiff - SalePriceCH - PriceDiff,
@@ -122,8 +122,9 @@ MM_LogM1 <- glm(MM ~  . - SalePriceMM - ListPriceDiff - SalePriceCH - PriceDiff,
 
 summary(MM_LogM1)
 ```
+Okay, so after removal of the coefficient values from our Model with the NA values, the Model performance remains unchanged, as assumed.
 
-Converting fitted values to predictions. We are predicting at 95% confidence interval
+Converting probabilities to 0 and 1 for predictions.
 ```{r}
 yhat_LogM1 <- (MM_LogM1$fit > 0.5) * 1
 ```
@@ -143,12 +144,15 @@ table(MM_fit_predictions$yact, MM_fit_predictions$yhat_LogM1)
 prop.table(table(MM_fit_predictions$yact, MM_fit_predictions$yhat_LogM1))
 ```
 
-Looks like our Model has an Accuracy of 82% and the Sensitivity or the Probability of True Positive is 80% at the 95% confidence interval.
+
 ```{r}
 cm_LogM1 <- confusionMatrix(MM_fit_predictions$yhat_LogM1, MM_fit_predictions$yact, 
                             positive = "1")
 cm_LogM1
 ```
+Looks like our Model has an Accuracy of 82% and the Sensitivity or the Probability of True Positive is 80% at the 95% confidence interval.
+
+Well, looks like our Logistic Regression data is well fit in between the probability of 0 and 1. 
 
 Visualizing the rate of purchase of MM vs CH. We got an almost ideal distribution scores with the scores of negative instances (0) to the left represented by the Orange Line and the distribution of positive instances (1) to the right represented by the dotted Green Line. This Orange solid line represents the distribution of the customer not buying MM or in other words the distribution of the customer buying CH and the dotted Green line represents the distributin of the customer buying MM or in other words the distribution of the customers not buying CH. 
 
@@ -225,6 +229,7 @@ rand_forest
 ## Creating Confusion Matrix
 ```{r}
 MM_fit_predictions$yhat_rf <- predict(rand_forest, type = "class")
+
 # Confusion matrix
 table(MM_fit_predictions$yact, MM_fit_predictions$yhat_rf)
 
@@ -260,7 +265,7 @@ Checking the characteristics of our original dataframe
 str(ojsalesdf_subset)
 ```
 
-Rescaling all of our dataframes for building prediction Models with k-nearest neighbor Classification. Since our total number of observations = 714. Taking approximate value of the square root of the number of total observations. That is Square Root of 714 = 26.7
+Rescaling all of our dataframes for building prediction Models with k-nearest neighbor Classification. Since our total number of observations = 714. Taking approximate value of the square root of the number of total observations. That is Square Root of 714 = 26.7. 
 
 ```{r}
 # Scaling the Dataframes
@@ -277,6 +282,14 @@ ojsalesdf_test[num.vars_test] <- lapply(ojsalesdf_test[num.vars_test], scale)
 pred_knn27 <- knn(ojsalesdf_train, ojsalesdf_test, ojsalesdf_train$MM, k=27, prob = TRUE)
 head(pred_knn27)
 ```
+
+## Creating Confusion Matrix
+```{r}
+pcol1 <- as.character(as.numeric(ojsalesdf_train$MM))
+pairs(ojsalesdf_test, pch = pcol1, col = c("red", "green3")
+  [(ojsalesdf_train$MM != pred_knn27)+1])
+```
+
 
 Then use the `predict()` function to make classification predictions on the
 test dataset and use `caret::confusionMatrix` to create a confusion matrix
@@ -344,7 +357,30 @@ cm_predrf
 cm_predknn27
 ```
 
-## Accuracy & Sensitivity for all the Models
+## Accuracy & Sensitivity for all the Fitted Models
+```{r}
+# Model 1: Logistic Regression
+sprintf("Model 1 - Logistic Regression: Accuracy = %8.4f Sensitivity = %8.4f", 
+        cm_LogM1$overall["Accuracy"],
+        cm_LogM1$byClass["Sensitivity"])
+```
+
+```{r}
+# Model 2: Simple Decision Tree
+sprintf("Model 1 - Simple Decision Tree: Accuracy = %8.4f Sensitivity = %8.4f", 
+        cm_tree$overall["Accuracy"],
+        cm_tree$byClass["Sensitivity"])
+```
+
+```{r}
+# Model 3: Random Forest
+sprintf("Model 1 - Random Forest: Accuracy = %8.4f Sensitivity = %8.4f", 
+        cm_rf$overall["Accuracy"],
+        cm_rf$byClass["Sensitivity"])
+```
+
+
+## Accuracy & Sensitivity for all the Predicted Models
 ```{r}
 # Model 1: Logistic Regression
 sprintf("Model 1 - Logistic Regression: Accuracy = %8.4f Sensitivity = %8.4f", 
@@ -374,7 +410,17 @@ sprintf("Model 1 - k-Nearest Neighbor: Accuracy = %8.4f Sensitivity = %8.4f",
 ```
 
 Summarize your results. 
+
 - Which technique performed the best in terms of overall accuracy? 
++ Out of all the 4 Models, looks like k-Nearest Neighbor performed the best in terms of overall accuracy. 
+But, since the Model accuracy or sensitivity would differ with different values of k, therefore would consider our traditional **Logistic Regression** to have performed best in terms of overall accuracy.
+
 - Which technique had the best sensitivity score?
++ Out of all the 4 Models, looks like k-Nearest Neighbor performed the best in terms of overall sensitivity score. 
+But, since the Model accuracy or sensitivity would differ with different values of k, therefore would consider our traditional **Logistic Regression** to have performed best in terms of overall sensitivity score.
+
 - How did accuracy differ for the training and test datasets for each model?
++ For almost all the Models there lies a significant difference in Accuracy and Sensitivity for all the Models in their training and test data as seen from the above summarized data. 
+
 - Is their any evidence of overfitting?
++ Overall, there looks like there might be an overfitting with our k-Nearest Neighbor Model, becuase the value depends largely on the selected value of k for the purpose of predicting the value. While for all the rest of the Models, especially the Random Forest and the Simple Decision Tree they appeared to be underfit.
