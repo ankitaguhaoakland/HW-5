@@ -43,6 +43,9 @@ def process_youtube(fn_youtube , fn_out, cat_id):
     # Initialize empty dict for counts by date
     daily_counts = {}
 
+    #Turns the input into a string
+    cat_id = format(cat_id)
+
     # regex for line filter - only include lines from category_id = 28
     # Snippet from first line:
     # 2kyS6SvSYSE	17.14.11	WE WANT TO TALK ABOUT OUR MARRIAGE	CaseyNeistat
@@ -104,4 +107,4 @@ def process_youtube(fn_youtube , fn_out, cat_id):
 
 
 if __name__ == '__main__':
-    process_youtube('./data/USvideos.csv', 'USvideos_SciTech.csv','28')
+    process_youtube('./data/USvideos_no_desc.csv', 'USvideos_SciTech.csv',28)
